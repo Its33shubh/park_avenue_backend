@@ -5,27 +5,35 @@ const jwt = require("jsonwebtoken");
 //  REGISTER 
 exports.Register = async (req, res) => {
     try {
-        const { name, phone, email, password } = req.body;
+        const { name, birthYear} = req.body;
 
-        if (!name || !phone || !email || !password) {
+        if (!name || !birthYear) {
             return res.status(400).json({
                 error: true,
                 success: false,
                 message: "All fields are required"
             })
         }
+        const cleanName = name.trim();
 
-
-        const emailRegex = /^\S+@\S+\.\S+$/;
-        if (!emailRegex.test(email)) {
+        if (isNaN(birthYear)) {
             return res.status(400).json({
-                success: false,
-                message: "Invalid email format"
-            })
-        }
+              error: true,
+              success:false,
+              message: "Birth year must be a number"
+            });
+          }
 
+          const year = Number(birthYear);
+          if (year < 1000 || year > 9999) {
+            return res.status(400).json({
+              error: true,
+              success:false,
+              message: "Birth year must be exactly 4 digits"
+            });
+          }
 
-        const existingUser = await User.findOne({ email });
+        const existingUser = await User.findOne({ name: cleanName })
         if (existingUser) {
             return res.status(400).json({
                 error: true,
@@ -34,30 +42,27 @@ exports.Register = async (req, res) => {
             });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedYear = await bcrypt.hash(year.toString(), 10);
 
         //user create
         const user = await User.create({
-            name,
-            phone,
-            email,
-            password: hashedPassword
+            name : cleanName,
+            birthYear:hashedYear
         });
 
         res.status(201).json({
+            error:false,
             success: true,
             message: "User registered successfully",
             user: {
                 id: user._id,
-                name: user.name,
-                phone: user.phone,
-                email: user.email,
-                role: user.role
+                name: user.name
             }
         });
 
     } catch (error) {
         res.status(500).json({
+            error:true,
             success: false,
             message: error.message
         });
@@ -66,40 +71,33 @@ exports.Register = async (req, res) => {
 
 exports.Login = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { name, birthYear } = req.body;
 
-        if (!email || !password) {
+        if (!name || !birthYear) {
             return res.status(400).json({
                 error: true,
                 success: false,
-                message: "Email and password are required"
+                message: "all filed are require"
             });
         }
-        const emailRegex = /^\S+@\S+\.\S+$/;
-        if (!emailRegex.test(email)) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid email format"
-            })
-        }
+        const cleanName = name.trim();
 
-
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ name:cleanName });
         if (!user) {
             return res.status(400).json({
                 error: true,
                 success: false,
-                message: "Invalid email"
+                message: "Invalid userName"
             });
         }
 
         // compare 
-        const isMatch = await bcrypt.compare(password, user.password);
+        const isMatch = await bcrypt.compare(birthYear.toString(), user.birthYear );
         if (!isMatch) {
             return res.status(400).json({
                 error: true,
                 success: false,
-                message: "Invalid password"
+                message: "Invalid birthYear"
             });
         }
 
@@ -120,9 +118,7 @@ exports.Login = async (req, res) => {
             token,
             user: {
                 id: user._id,
-                name: user.name,
-                phone: user.phone,
-                email: user.email,
+                name: user.name,  
                 role: user.role
             }
         });
