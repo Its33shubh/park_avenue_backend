@@ -44,3 +44,23 @@ exports.addCategory = async (req, res) => {
     });
   }
 }
+
+exports.getCategories = async (req, res) => {
+    try {
+      const categories = await Category.find().sort({ createdAt: -1 });
+  
+      res.status(200).json({
+        error:false,
+        success: true,
+        count: categories.length,
+        data: categories
+      });
+  
+    } catch (error) {
+      res.status(500).json({
+        error: true,
+        success:false,
+        message: error.message
+      });
+    }
+  }
