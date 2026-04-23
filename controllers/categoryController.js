@@ -63,4 +63,47 @@ exports.getCategories = async (req, res) => {
         message: error.message
       });
     }
+}
+
+exports.updateCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+
+    let updateData = {};
+
+    // update name
+    if (name) {
+      updateData.name = name.trim();
+    }
+
+    // image update
+    if (req.file) {
+      const imageUrl = await uploadImage(
+        req.file,
+        `park_avenue/categories/${name?.toLowerCase() || "other"}`
+      );
+
+      updateData.image = imageUrl;
+    }
+
+    const updated = await Category.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      message: "Category updated",
+      data: updated
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      error: true,
+      message: error.message
+    });
   }
+}
+
