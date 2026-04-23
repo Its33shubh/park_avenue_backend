@@ -3,6 +3,7 @@ const express = require('express')
 const connectDB = require('./config/db')
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes"); 
+const categoryRoutes = require("./routes/categoryRoutes")
 
 const app = express()
 
@@ -10,8 +11,10 @@ app.use(express.json())
 
 connectDB()
 
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authRoutes)
 app.use("/api/admin",adminRoutes)
+app.use("/api/category", categoryRoutes)
+
 
 app.get('/',(req,res)=>{
     res.send('app is run')
