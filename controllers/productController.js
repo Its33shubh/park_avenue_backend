@@ -55,4 +55,34 @@ exports.addProduct = async (req, res) => {
       });
     }
 }
+
+exports.getProducts = async (req, res) => {
+    try {
+      const { category } = req.query;
+  
+      let filter = {};
+      if (category) {
+        filter.category = category;
+      }
+  
+      const products = await Product.find(filter)
+        .populate("category", "name image")
+        .sort({ createdAt: -1 });
+  
+      res.json({
+        error:false,
+        success: true,
+        count: products.length,
+        data: products
+      });
+  
+    } catch (error) {
+      res.status(500).json({
+        error: true,
+        success:false,
+        message: error.message
+      });
+    }
+}
+  
   
