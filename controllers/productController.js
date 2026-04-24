@@ -168,5 +168,30 @@ exports.deleteProduct = async (req, res) => {
       });
     }
 }
+
+exports.toggleAvailability = async (req, res) => {
+    try {
+      const { id } = req.params;
+  
+      const product = await Product.findById(id);
+  
+      product.isAvailable = !product.isAvailable;
+      await product.save();
+  
+      res.json({
+        error:false,
+        success: true,
+        message: "Availability updated",
+        data: product
+      });
+  
+    } catch (error) {
+      res.status(500).json({
+        error: true,
+        success:false,
+        message: error.message
+      });
+    }
+}
   
   
