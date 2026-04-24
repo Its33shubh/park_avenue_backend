@@ -84,5 +84,59 @@ exports.getProducts = async (req, res) => {
       });
     }
 }
+
+exports.updateProduct = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, description, price, category } = req.body;
+  
+      const product = await Product.findById(id);
+      if (!product) {
+        return res.status(404).json({
+          error: true,
+          success:false,
+          message: "Product not found"
+        });
+      }
+  
+      let imageUrl = product.image;
+  
+      if (req.file) {
+        const categoryData = await Category.findById(category || product.category);
+  
+        imageUrl = await uploadImage(
+          req.file,
+          `park_avenue/products/${categoryData.name.toLowerCase()}`
+        );
+      }
+  
+      const updated = await Product.findByIdAndUpdate(
+        id,
+        {
+          name: name?.trim() || product.name,
+          description,
+          price,
+          category: category || product.category,
+          image: imageUrl
+        },
+        { new: true }
+      );
+  
+      res.json({
+        error:false,
+        success: true,
+        message: "Product updated",
+        data: updated
+      });
+  
+    } catch (error) {
+      res.status(500).json({
+        error: true,
+        success:false,
+        message: error.message
+      });
+    }
+  
+}
   
   
