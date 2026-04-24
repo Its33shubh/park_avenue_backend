@@ -3,14 +3,9 @@ const router = express.Router();
 
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
+const { getDashboard } = require("../controllers/dashboardController");
 
 // Only Admin Access
-router.get("/dashboard", authMiddleware, roleMiddleware("admin"), (req, res) => {
-
-  res.json({
-    success: true,
-    message: `Welcome ${req.user.name} as Admin` 
-  });
-});
+router.get("/dashboard",authMiddleware,roleMiddleware("admin"),getDashboard);
 
 module.exports = router;
