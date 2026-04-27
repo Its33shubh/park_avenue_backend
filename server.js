@@ -4,7 +4,8 @@ const connectDB = require('./config/db')
 const authRoutes = require("./routes/authRoutes")
 const adminRoutes = require("./routes/adminRoutes")
 const categoryRoutes = require("./routes/categoryRoutes")
-const productRoutes = require("./routes/productRoutes");
+const productRoutes = require("./routes/productRoutes")
+const orderRoutes = require("./routes/orderRoutes")
 
 const app = express()
 
@@ -16,6 +17,7 @@ app.use("/api/auth", authRoutes)
 app.use("/api/admin",adminRoutes)
 app.use("/api/category", categoryRoutes)
 app.use("/api/product", productRoutes)
+app.use("/api/order",orderRoutes)
 
 
 app.get('/',(req,res)=>{

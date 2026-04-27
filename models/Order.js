@@ -1,8 +1,13 @@
 const mongoose = require("mongoose");
 
 const orderSchema = new mongoose.Schema({
-  
+
   userName: {
+    type: String,
+    required: true
+  },
+
+  phone: {
     type: String,
     required: true
   },
