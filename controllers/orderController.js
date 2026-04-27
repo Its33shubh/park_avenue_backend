@@ -140,3 +140,50 @@ exports.acceptOrder = async (req, res) => {
       });
     }
 }
+
+
+// REJECT ORDER
+exports.rejectOrder = async (req, res) => {
+    try {
+      const { id } = req.params;
+  
+      const order = await Order.findById(id);
+  
+      if (!order) {
+        return res.status(404).json({
+          error: true,
+          success: false,
+          message: "Order not found"
+        });
+      }
+  
+      //  already processed
+      if (order.status !== "pending") {
+        return res.status(400).json({
+          error: true,
+          success: false,
+          message: `Order already ${order.status}`
+        });
+      }
+  
+      order.status = "rejected";
+      await order.save();
+  
+      res.json({
+        error: false,
+        success: true,
+        message: "Order rejected",
+        data: {
+          id: order._id,
+          status: order.status
+        }
+      });
+  
+    } catch (error) {
+      res.status(500).json({
+        error: true,
+        success: false,
+        message: error.message
+      });
+    }
+}
