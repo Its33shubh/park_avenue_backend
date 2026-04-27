@@ -60,4 +60,37 @@ exports.createOrder = async (req, res) => {
       message: error.message
     });
   }
-};
+}
+
+// GET ALL ORDERS (ADMIN)
+exports.getOrders = async (req, res) => {
+  try {
+
+    const { status } = req.query;
+
+    let filter = {};
+
+    // filter by status (optional)
+    if (status) {
+      filter.status = status; // pending / accepted / rejected
+    }
+
+    const orders = await Order.find(filter)
+      .populate("items.product", "name price image") 
+      .sort({ createdAt: -1 }); 
+
+    res.status(200).json({
+      error: false,
+      success: true,
+      count: orders.length,
+      data: orders
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      error: true,
+      success: false,
+      message: error.message
+    });
+  }
+}
