@@ -39,3 +39,22 @@ exports.addTable = async (req, res) => {
     });
   }
 }
+
+exports.getTables = async (req, res) => {
+  try {
+    const tables = await Table.find().sort({ tableNumber: 1 });
+
+    res.json({
+      error:false,
+      success: true,
+      data: tables
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      error: true,
+      success:false,
+      message: error.message
+    });
+  }
+}
