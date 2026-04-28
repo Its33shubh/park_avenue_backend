@@ -58,3 +58,32 @@ exports.getTables = async (req, res) => {
     });
   }
 }
+
+exports.deleteTable = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const table = await Table.findByIdAndDelete(id);
+
+    if (!table) {
+      return res.status(404).json({
+        error: true,
+        success:false,
+        message: "Table not found"
+      });
+    }
+
+    res.json({
+      error:false,
+      success: true,
+      message: "Table deleted"
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      error: true,
+      success:false,
+      message: error.message
+    });
+  }
+}
