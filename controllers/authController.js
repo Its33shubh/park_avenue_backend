@@ -2,38 +2,84 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-//  REGISTER 
+
+// 🔥 validate full date 
+function parseDOB(dobString) {
+    if (!/^\d{8}$/.test(dobString)) return null;
+
+    const day = parseInt(dobString.substring(0, 2));
+    const month = parseInt(dobString.substring(2, 4)) - 1;
+    const year = parseInt(dobString.substring(4, 8));
+
+    const date = new Date(year, month, day);
+
+    if (
+        date.getFullYear() !== year ||
+        date.getMonth() !== month ||
+        date.getDate() !== day
+    ) {
+        return null;
+    }
+
+    return date;
+}
+
 exports.Register = async (req, res) => {
     try {
-        const { name, birthYear} = req.body;
+        const { name, birthDate } = req.body;
 
-        if (!name || !birthYear) {
+        if (!name || birthDate === undefined) {
             return res.status(400).json({
                 error: true,
                 success: false,
                 message: "All fields are required"
-            })
+            });
         }
+
         const cleanName = name.trim();
 
-        if (isNaN(birthYear)) {
+        //  number validation
+        if (isNaN(birthDate)) {
             return res.status(400).json({
-              error: true,
-              success:false,
-              message: "Birth year must be a number"
+                error: true,
+                success: false,
+                message: "Birth date must be a number"
             });
-          }
+        }
 
-          const year = Number(birthYear);
-          if (year < 1000 || year > 9999) {
+        // convert to string
+        const dobString = birthDate.toString();
+
+        //  length check
+        if (dobString.length !== 8) {
             return res.status(400).json({
-              error: true,
-              success:false,
-              message: "Birth year must be exactly 4 digits"
+                error: true,
+                success: false,
+                message: "Birth date must be 8 digits (DDMMYYYY)"
             });
-          }
+        }
 
-        const existingUser = await User.findOne({ name: cleanName })
+        //  parse DOB
+        const parsedDate = parseDOB(dobString);
+
+        if (!parsedDate) {
+            return res.status(400).json({
+                error: true,
+                success: false,
+                message: "Invalid DOB format (DDMMYYYY)"
+            });
+        }
+
+        //  future date check
+        if (parsedDate > new Date()) {
+            return res.status(400).json({
+                error: true,
+                success: false,
+                message: "Birth date cannot be future"
+            });
+        }
+
+        const existingUser = await User.findOne({ name: cleanName });
         if (existingUser) {
             return res.status(400).json({
                 error: true,
@@ -42,16 +88,16 @@ exports.Register = async (req, res) => {
             });
         }
 
-        const hashedYear = await bcrypt.hash(year.toString(), 10);
+        //  hash DOB
+        const hashedDOB = await bcrypt.hash(dobString, 10);
 
-        //user create
         const user = await User.create({
-            name : cleanName,
-            birthYear:hashedYear
+            name: cleanName,
+            birthDate: hashedDOB
         });
 
         res.status(201).json({
-            error:false,
+            error: false,
             success: true,
             message: "User registered successfully",
             user: {
@@ -62,46 +108,68 @@ exports.Register = async (req, res) => {
 
     } catch (error) {
         res.status(500).json({
-            error:true,
+            error: true,
             success: false,
             message: error.message
         });
     }
 }
 
+
 exports.Login = async (req, res) => {
     try {
-        const { name, birthYear } = req.body;
+        const { name, birthDate } = req.body;
 
-        if (!name || !birthYear) {
+        if (!name || birthDate === undefined) {
             return res.status(400).json({
                 error: true,
                 success: false,
-                message: "all filed are require"
+                message: "All fields are required"
             });
         }
+
         const cleanName = name.trim();
 
-        const user = await User.findOne({ name:cleanName });
+        const user = await User.findOne({ name: cleanName });
         if (!user) {
             return res.status(400).json({
                 error: true,
                 success: false,
-                message: "Invalid userName"
+                message: "Invalid name"
             });
         }
 
-        // compare 
-        const isMatch = await bcrypt.compare(birthYear.toString(), user.birthYear );
+        // number validation
+        if (isNaN(birthDate)) {
+            return res.status(400).json({
+                error: true,
+                success: false,
+                message: "Birth date must be a number"
+            });
+        }
+
+        // convert to string
+        const dobString = birthDate.toString();
+
+        if (dobString.length !== 8) {
+            return res.status(400).json({
+                error: true,
+                success: false,
+                message: "Invalid birth date"
+            });
+        }
+
+        //  compare DOB
+        const isMatch = await bcrypt.compare(dobString, user.birthDate);
+
         if (!isMatch) {
             return res.status(400).json({
                 error: true,
                 success: false,
-                message: "Invalid birthYear"
+                message: "Invalid birth date"
             });
         }
 
-        // generate token
         const token = jwt.sign(
             {
                 id: user._id,
@@ -118,7 +186,7 @@ exports.Login = async (req, res) => {
             token,
             user: {
                 id: user._id,
-                name: user.name,  
+                name: user.name,
                 role: user.role
             }
         });

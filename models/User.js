@@ -6,15 +6,18 @@ const userSchema = new mongoose.Schema({
     required: true,
     unique: true   
   },
-  birthYear: {
-    type: String,
+
+  birthDate: {
+    type: String,   
     required: true
   },
+
   role: {
     type: String,
     enum: ["user", "admin"],
     default: "user"
   }
+
 }, { timestamps: true });
 
 module.exports = mongoose.model("User", userSchema);
