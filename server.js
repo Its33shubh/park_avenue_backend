@@ -6,6 +6,7 @@ const adminRoutes = require("./routes/adminRoutes")
 const categoryRoutes = require("./routes/categoryRoutes")
 const productRoutes = require("./routes/productRoutes")
 const orderRoutes = require("./routes/orderRoutes")
+const tableRoutes = require("./routes/tableRoutes")
 
 const app = express()
 
@@ -18,6 +19,7 @@ app.use("/api/admin",adminRoutes)
 app.use("/api/category", categoryRoutes)
 app.use("/api/product", productRoutes)
 app.use("/api/order",orderRoutes)
+app.use("/api/table", tableRoutes)
 
 
 app.get('/',(req,res)=>{
