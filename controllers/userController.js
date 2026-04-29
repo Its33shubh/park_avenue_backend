@@ -18,4 +18,58 @@ exports.getUsers = async (req, res) => {
       message: error.message
     });
   }
-};
+}
+
+exports.updateUserRole = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { role } = req.body;
+  
+      // 🔹 validate role
+      if (!["user", "admin"].includes(role)) {
+        return res.status(400).json({
+          error: true,
+          success: false,
+          message: "Invalid role"
+        });
+      }
+  
+      // 🔹 find user
+      const user = await User.findById(id);
+  
+      if (!user) {
+        return res.status(404).json({
+          error: true,
+          success: false,
+          message: "User not found"
+        });
+      }
+  
+      // 🔥 SAME ROLE CHECK (IMPORTANT)
+      if (user.role === role) {
+        return res.status(400).json({
+          error: true,
+          success: false,
+          message: `User already has role '${role}'`
+        });
+      }
+  
+      // 🔹 update role
+      user.role = role;
+      await user.save();
+  
+      res.json({
+        error: false,
+        success: true,
+        message: "User role updated",
+        data: user
+      });
+  
+    } catch (error) {
+      res.status(500).json({
+        error: true,
+        success: false,
+        message: error.message
+      });
+    }
+}
