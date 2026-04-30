@@ -7,6 +7,7 @@ const categoryRoutes = require("./routes/categoryRoutes")
 const productRoutes = require("./routes/productRoutes")
 const orderRoutes = require("./routes/orderRoutes")
 const tableRoutes = require("./routes/tableRoutes")
+const reportRoutes = require("./routes/reportRoutes")
 
 const app = express()
 
@@ -20,7 +21,7 @@ app.use("/api/category", categoryRoutes)
 app.use("/api/product", productRoutes)
 app.use("/api/order",orderRoutes)
 app.use("/api/table", tableRoutes)
-
+app.use("/api/report",reportRoutes)
 
 app.get('/',(req,res)=>{
     res.send('app is run')

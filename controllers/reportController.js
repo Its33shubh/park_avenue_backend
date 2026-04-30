@@ -1,0 +1,59 @@
+const Order = require("../models/Order");
+
+exports.getMonthlyReport = async (req, res) => {
+  try {
+    const { year, month } = req.query;
+
+    //  validation
+    if (!year || !month) {
+      return res.status(400).json({
+        error: true,
+        success: false,
+        message: "Year and month are required"
+      });
+    }
+
+    //  month range
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59);
+
+    //  fetch data
+    const orders = await Order.find({
+      createdAt: {
+        $gte: startDate,
+        $lte: endDate
+      }
+    }).sort({ createdAt: 1 });
+
+    //  format report
+    let report = orders.map((order, index) => {
+      const totalItems = order.items.reduce((sum, item) => {
+        return sum + item.quantity;
+      }, 0);
+
+      return {
+        sr: index + 1,
+        date: order.createdAt.toISOString().split("T")[0],
+        name: order.userName,
+        phone: order.phone,
+        tableNumber: order.tableNumber,
+        totalItems,
+        totalBill: order.totalAmount
+      };
+    });
+
+    res.json({
+      error: false,
+      success: true,
+      count: report.length,
+      data: report
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      error: true,
+      success: false,
+      message: error.message
+    });
+  }
+}
