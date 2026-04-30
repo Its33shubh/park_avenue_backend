@@ -12,6 +12,14 @@ exports.getMonthlyReport = async (req, res) => {
         message: "Year and month are required"
       });
     }
+    //
+    if (month < 1 || month > 12) {
+        return res.status(400).json({
+          error: true,
+          success: false,
+          message: "Invalid month"
+        });
+      }
 
     //  month range
     const startDate = new Date(year, month - 1, 1);
@@ -43,10 +51,18 @@ exports.getMonthlyReport = async (req, res) => {
     });
     // no data available for req. date and month
     if (report.length === 0) {
+
+        const monthNames = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+          ];
+
+          const monthName = monthNames[month - 1];
+
         return res.json({
           error: false,
           success: true,
-          message: `No orders found for ${month}/${year}`,
+          message: `No orders found for ${monthName} ${year}`,
           count: 0,
           data: []
         });
