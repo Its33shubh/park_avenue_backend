@@ -1,19 +1,82 @@
 const Order = require("../models/Order");
 
+//  ISO date validation (YYYY-MM-DD)
+function isValidDateStrict(dateString) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return false;
+
+  const [year, month, day] = dateString.split("-").map(Number);
+
+  const date = new Date(year, month - 1, day);
+
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+  );
+}
+
 exports.getMonthlyReport = async (req, res) => {
   try {
-    const { year, month } = req.query;
+    const { year, month, startDate, endDate } = req.query;
 
-    //  validation
-    if (!year || !month) {
-      return res.status(400).json({
-        error: true,
-        success: false,
-        message: "Year and month are required"
-      });
+    let filter = {};
+
+    // date filter
+    if (startDate && endDate) {
+
+      // format validation
+      if (!isValidDateStrict(startDate) || !isValidDateStrict(endDate)) {
+        return res.status(400).json({
+          error: true,
+          success: false,
+          message: "Invalid date format (YYYY-MM-DD required)"
+        });
+      }
+
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      // logical validation
+      if (start > end) {
+        return res.status(400).json({
+          error: true,
+          success: false,
+          message: "startDate cannot be greater than endDate"
+        });
+      }
+
+      // full-day fix 
+      end.setDate(end.getDate() + 1);
+
+      filter.createdAt = {
+        $gte: start,
+        $lt: end
+      };
     }
-    //
-    if (month < 1 || month > 12) {
+    //   MONTH FILTER
+    else {
+
+      if (!year || !month) {
+        return res.status(400).json({
+          error: true,
+          success: false,
+          message: "Provide (year & month) OR (startDate & endDate)"
+        });
+      }
+
+      const y = Number(year);
+      const m = Number(month);
+
+      // validation
+      if (isNaN(y) || y < 2000 || y > 2100) {
+        return res.status(400).json({
+          error: true,
+          success: false,
+          message: "Invalid year"
+        });
+      }
+
+      if (isNaN(m) || m < 1 || m > 12) {
         return res.status(400).json({
           error: true,
           success: false,
@@ -21,23 +84,22 @@ exports.getMonthlyReport = async (req, res) => {
         });
       }
 
-    //  month range
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0, 23, 59, 59);
+      const start = new Date(y, m - 1, 1);
+      const end = new Date(y, m, 0, 23, 59, 59);
 
-    //  fetch data
-    const orders = await Order.find({
-      createdAt: {
-        $gte: startDate,
-        $lte: endDate
-      }
-    }).sort({ createdAt: 1 });
-
-    //  format report
-    let report = orders.map((order, index) => {
-      const totalItems = order.items.reduce((sum, item) => {
-        return sum + item.quantity;
-      }, 0);
+      filter.createdAt = {
+        $gte: start,
+        $lte: end
+      };
+    }
+    // FETCH DATA
+    const orders = await Order.find(filter).sort({ createdAt: 1 });
+    //  FORMAT DATE
+    const report = orders.map((order, index) => {
+      const totalItems = order.items.reduce(
+        (sum, item) => sum + item.quantity,
+        0
+      );
 
       return {
         sr: index + 1,
@@ -49,28 +111,38 @@ exports.getMonthlyReport = async (req, res) => {
         totalBill: order.totalAmount
       };
     });
-    // no data available for req. date and month
+
+    // 
+    // NO DATA HANDLING
     if (report.length === 0) {
 
+      let message = "No orders found";
+
+      if (startDate && endDate) {
+        message = `No orders found between ${startDate} to ${endDate}`;
+      } else {
         const monthNames = [
-            "January", "February", "March", "April", "May", "June",
-            "July", "August", "September", "October", "November", "December"
-          ];
+          "January", "February", "March", "April", "May", "June",
+          "July", "August", "September", "October", "November", "December"
+        ];
 
-          const monthName = monthNames[month - 1];
-
-        return res.json({
-          error: false,
-          success: true,
-          message: `No orders found for ${monthName} ${year}`,
-          count: 0,
-          data: []
-        });
+        const monthName = monthNames[Number(month) - 1];
+        message = `No orders found for ${monthName} ${year}`;
       }
 
+      return res.json({
+        error: false,
+        success: true,
+        message,
+        count: 0,
+        data: []
+      });
+    }
+    //  SUCCESS RESPONSE
     res.json({
       error: false,
       success: true,
+      message: "Report fetched successfully",
       count: report.length,
       data: report
     });
