@@ -41,6 +41,16 @@ exports.getMonthlyReport = async (req, res) => {
         totalBill: order.totalAmount
       };
     });
+    // no data available for req. date and month
+    if (report.length === 0) {
+        return res.json({
+          error: false,
+          success: true,
+          message: `No orders found for ${month}/${year}`,
+          count: 0,
+          data: []
+        });
+      }
 
     res.json({
       error: false,
