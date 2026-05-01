@@ -110,7 +110,7 @@ exports.getMonthlyReport = async (req, res) => {
 
       filter.user = userId
     }
-    // bill price filter
+    // bill price 
     if ((minAmount && isNaN(minAmount)) || (maxAmount && isNaN(maxAmount))) {
       return res.status(400).json({
         error: true,
