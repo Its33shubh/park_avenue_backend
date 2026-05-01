@@ -1,10 +1,10 @@
 const Order = require("../models/Order");
 const Product = require("../models/Product");
 
-//CREATE ORDER
 exports.createOrder = async (req, res) => {
   try {
     const { userName, phone, tableNumber, items } = req.body;
+
     if (!userName || !phone || !tableNumber || !items || items.length === 0) {
       return res.status(400).json({
         error: true,
@@ -15,18 +15,26 @@ exports.createOrder = async (req, res) => {
 
     let totalAmount = 0;
 
-    // calculate total (FAST)
     const productIds = items.map(item => item.product);
 
     const products = await Product.find({ _id: { $in: productIds } });
-    //fast lookup 
+
     const productMap = {};
     products.forEach(p => {
-      productMap[p._id] = p;
+      productMap[p._id.toString()] = p;  
     });
 
     for (let item of items) {
-      const product = productMap[item.product];
+
+      if (item.quantity <= 0) {
+        return res.status(400).json({
+          error: true,
+          success: false,
+          message: "Quantity must be greater than 0"
+        });
+      }
+
+      const product = productMap[item.product.toString()]; // 
 
       if (!product) {
         return res.status(404).json({
@@ -38,7 +46,9 @@ exports.createOrder = async (req, res) => {
 
       totalAmount += product.price * item.quantity;
     }
+
     const order = await Order.create({
+      user: req.user.id || null,
       userName,
       phone,
       tableNumber,

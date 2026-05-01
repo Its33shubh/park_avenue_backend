@@ -7,7 +7,7 @@ const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 
 // CREATE ORDER (user)
-router.post("/create", createOrder);
+router.post("/create",authMiddleware, createOrder);
 
 // GET ALL ORDERS
 router.get("/get", authMiddleware, roleMiddleware("admin"), getOrders);
