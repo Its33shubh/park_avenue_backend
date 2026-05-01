@@ -1,4 +1,5 @@
 const Order = require("../models/Order")
+const mongoose = require('mongoose')
 
 //  ISO date validation (YYYY-MM-DD)
 function isValidDateStrict(dateString) {
@@ -17,14 +18,23 @@ function isValidDateStrict(dateString) {
 
 exports.getMonthlyReport = async (req, res) => {
   try {
-    const { year, month, startDate, endDate,userId } = req.query;
+    const { year, month, startDate, endDate, userId,minAmount, maxAmount } = req.query;
 
     let filter = {};
 
-    // date filter
-    if (startDate && endDate) {
+    // AT LEAST ONE FILTER REQUIRED
+    if (!startDate && !endDate && !year && !month && !userId &&!minAmount && !maxAmount) {
+      return res.status(400).json({
+        error: true,
+        success: false,
+        message: "Provide at least one filter"
+      });
+    }
 
-      // format validation
+
+    //  DATE FILTER
+     if (startDate && endDate) {
+
       if (!isValidDateStrict(startDate) || !isValidDateStrict(endDate)) {
         return res.status(400).json({
           error: true,
@@ -33,10 +43,9 @@ exports.getMonthlyReport = async (req, res) => {
         });
       }
 
-      const start = new Date(startDate);
-      const end = new Date(endDate);
+      const start = new Date(startDate)
+      const end = new Date(endDate)
 
-      // logical validation
       if (start > end) {
         return res.status(400).json({
           error: true,
@@ -45,29 +54,23 @@ exports.getMonthlyReport = async (req, res) => {
         });
       }
 
-      // full-day fix 
-      end.setDate(end.getDate() + 1);
+      end.setDate(end.getDate() + 1)
 
       filter.createdAt = {
         $gte: start,
         $lt: end
       };
     }
-    //   MONTH FILTER
-    else {
 
-      if (!year || !month) {
-        return res.status(400).json({
-          error: true,
-          success: false,
-          message: "Provide (year & month) OR (startDate & endDate)"
-        });
-      }
+   
+    // MONTH FILTER (only if date not given)
+    
+    if (!startDate && !endDate && year && month) {
 
-      const y = Number(year);
-      const m = Number(month);
+      const y = Number(year)
+      const m = Number(month)
 
-      // validation
+      // 🔥 YEAR VALIDATION
       if (isNaN(y) || y < 2000 || y > 2100) {
         return res.status(400).json({
           error: true,
@@ -76,6 +79,7 @@ exports.getMonthlyReport = async (req, res) => {
         });
       }
 
+      // 🔥 MONTH VALIDATION
       if (isNaN(m) || m < 1 || m > 12) {
         return res.status(400).json({
           error: true,
@@ -92,15 +96,47 @@ exports.getMonthlyReport = async (req, res) => {
         $lte: end
       };
     }
-    // user filter
+
+    //  USER ID FILTER
     if (userId) {
-      filter.user = userId;
+
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(400).json({
+          error: true,
+          success: false,
+          message: "Invalid userId"
+        });
+      }
+
+      filter.user = userId
     }
-    // FETCH DATA
+    // bill price filter
+    if ((minAmount && isNaN(minAmount)) || (maxAmount && isNaN(maxAmount))) {
+      return res.status(400).json({
+        error: true,
+        success: false,
+        message: "Invalid amount value"
+      });
+    }
+
+    if (minAmount || maxAmount) {
+      filter.totalAmount = {};
+
+      if (minAmount) {
+        filter.totalAmount.$gte = Number(minAmount);
+      }
+
+      if (maxAmount) {
+        filter.totalAmount.$lte = Number(maxAmount);
+      }
+    }
+    //  FETCH DATA
+    
     const orders = await Order.find(filter)
-    .populate("user","_id name")
-    .sort({ createdAt: 1 });
-    //  FORMAT DATE
+      .populate("user", "_id name")
+      .sort({ createdAt: 1 });
+
+    // FORMAT
     const report = orders.map((order, index) => {
       const totalItems = order.items.reduce(
         (sum, item) => sum + item.quantity,
@@ -109,7 +145,7 @@ exports.getMonthlyReport = async (req, res) => {
 
       return {
         sr: index + 1,
-        userId: order.user?._id,   
+        userId: order.user?._id || null,
         name: order.user?.name || order.userName,
         phone: order.phone,
         tableNumber: order.tableNumber,
@@ -119,46 +155,31 @@ exports.getMonthlyReport = async (req, res) => {
       }
     })
 
-    // 
-    // NO DATA HANDLING
+    // no data
     if (report.length === 0) {
-
-      let message = "No orders found";
-
-      if (startDate && endDate) {
-        message = `No orders found between ${startDate} to ${endDate}`;
-      } else {
-        const monthNames = [
-          "January", "February", "March", "April", "May", "June",
-          "July", "August", "September", "October", "November", "December"
-        ];
-
-        const monthName = monthNames[Number(month) - 1];
-        message = `No orders found for ${monthName} ${year}`;
-      }
-
       return res.json({
         error: false,
         success: true,
-        message,
+        message: "No orders found",
         count: 0,
         data: []
-      });
+      })
     }
-    //  SUCCESS RESPONSE
+
+      //  SUCCESS
     res.json({
       error: false,
       success: true,
       message: "Report fetched successfully",
       count: report.length,
       data: report
-    });
+    })
 
   } catch (error) {
     res.status(500).json({
       error: true,
       success: false,
       message: error.message
-    });
+    })
   }
 }
