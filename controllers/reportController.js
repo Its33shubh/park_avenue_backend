@@ -1,4 +1,4 @@
-const Order = require("../models/Order");
+const Order = require("../models/Order")
 
 //  ISO date validation (YYYY-MM-DD)
 function isValidDateStrict(dateString) {
@@ -17,7 +17,7 @@ function isValidDateStrict(dateString) {
 
 exports.getMonthlyReport = async (req, res) => {
   try {
-    const { year, month, startDate, endDate } = req.query;
+    const { year, month, startDate, endDate,userId } = req.query;
 
     let filter = {};
 
@@ -92,8 +92,14 @@ exports.getMonthlyReport = async (req, res) => {
         $lte: end
       };
     }
+    // user filter
+    if (userId) {
+      filter.user = userId;
+    }
     // FETCH DATA
-    const orders = await Order.find(filter).sort({ createdAt: 1 });
+    const orders = await Order.find(filter)
+    .populate("user","_id name")
+    .sort({ createdAt: 1 });
     //  FORMAT DATE
     const report = orders.map((order, index) => {
       const totalItems = order.items.reduce(
@@ -103,14 +109,15 @@ exports.getMonthlyReport = async (req, res) => {
 
       return {
         sr: index + 1,
-        date: order.createdAt.toISOString().split("T")[0],
-        name: order.userName,
+        userId: order.user?._id,   
+        name: order.user?.name || order.userName,
         phone: order.phone,
         tableNumber: order.tableNumber,
         totalItems,
-        totalBill: order.totalAmount
-      };
-    });
+        totalBill: order.totalAmount,
+        date: order.createdAt.toISOString().split("T")[0]
+      }
+    })
 
     // 
     // NO DATA HANDLING
