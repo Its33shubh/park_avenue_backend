@@ -1,5 +1,6 @@
 const Order = require("../models/Order");
 const Product = require("../models/Product");
+const Table = require("../models/Table");
 
 exports.createOrder = async (req, res) => {
   try {
@@ -12,7 +13,27 @@ exports.createOrder = async (req, res) => {
         message: "All fields are required"
       });
     }
+    // TABLE CHECK + OCCUPY
+    const table = await Table.findOne({ tableNumber });
 
+    if (!table) {
+      return res.status(404).json({
+        error: true,
+        success: false,
+        message: "Table not found"
+      });
+    }
+
+    //  already occupied
+    if (!table.isAvailable) {
+      return res.status(400).json({
+        error: true,
+        success: false,
+        message: "Table already occupied"
+      });
+    }
+
+    //
     let totalAmount = 0;
 
     const productIds = items.map(item => item.product);
@@ -46,6 +67,9 @@ exports.createOrder = async (req, res) => {
 
       totalAmount += product.price * item.quantity;
     }
+    //TABLE OCCUPY 
+    table.isAvailable = false;
+    await table.save();
 
     const order = await Order.create({
       user: req.user.id || null,
@@ -178,15 +202,20 @@ exports.rejectOrder = async (req, res) => {
   
       order.status = "rejected";
       await order.save();
+      
+      //table free 
+      const table = await Table.findOne({ tableNumber: order.tableNumber });
+
+      if (table) {
+        table.isAvailable = true;
+        await table.save();
+      }
   
       res.json({
         error: false,
         success: true,
-        message: "Order rejected",
-        data: {
-          id: order._id,
-          status: order.status
-        }
+        message: "Order rejected & table freed",
+        data: order
       });
   
     } catch (error) {
