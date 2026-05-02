@@ -87,3 +87,46 @@ exports.deleteTable = async (req, res) => {
     });
   }
 }
+
+exports.updateTableStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isAvailable } = req.body;
+
+    // ✅ validation
+    if (typeof isAvailable !== "boolean") {
+      return res.status(400).json({
+        error: true,
+        success: false,
+        message: "isAvailable must be true or false"
+      });
+    }
+
+    const table = await Table.findById(id);
+
+    if (!table) {
+      return res.status(404).json({
+        error: true,
+        success: false,
+        message: "Table not found"
+      });
+    }
+
+    table.isAvailable = isAvailable;
+    await table.save();
+
+    res.json({
+      error: false,
+      success: true,
+      message: `Table marked as ${isAvailable ? "available" : "occupied"}`,
+      data: table
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      error: true,
+      success: false,
+      message: error.message
+    });
+  }
+}
