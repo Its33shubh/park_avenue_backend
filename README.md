@@ -218,15 +218,6 @@ backend/
 
 ---
 
-## 🚀 Future Enhancements
-
-* QR Code Ordering
-* Payment Gateway Integration
-* Real-Time Notifications
-* Advanced Analytics Dashboard
-* AI-Based Restaurant Insights
-
----
 
 ## 👨‍💻 Author
 
